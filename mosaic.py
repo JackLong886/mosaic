@@ -420,26 +420,13 @@ if __name__ == '__main__':
     parser.add_argument('--output_path', type=str, default=None)
     parser.add_argument('--work_dir', type=str, default=r'C:\Users\DELL\Desktop\ceshi\tmp')
     opt = parser.parse_args()
-
     if os.path.exists(opt.json_path):
         with open(opt.json_path, 'r', encoding='utf-8-sig') as f:
             args = json.load(f)
             opt.img_list = args['img_list']
+            opt.shp_list = args['shp_list']
             opt.output_path = args['output_path']
-
-    opt.img_list = [
-        r'C:\Users\DELL\Desktop\CloudRemoval\clundcheck\l1_8bit.tif',
-        r'C:\Users\DELL\Desktop\CloudRemoval\clundcheck\l2_8bit.tif',
-        r'C:\Users\DELL\Desktop\CloudRemoval\clundcheck\l3_8bit.tif',
-    ]
-
-    opt.shp_list = [
-        r'C:\Users\DELL\Desktop\CloudRemoval\clundcheck\l1_8bitG.shp',
-        r'C:\Users\DELL\Desktop\CloudRemoval\clundcheck\l2_8bitG.shp',
-        r'C:\Users\DELL\Desktop\CloudRemoval\clundcheck\l3_8bitG.shp',
-    ]
-
-    opt.output_path = r'C:\Users\DELL\Desktop\ceshi\mosaic.tif'
+            opt.work_dir = args['work_dir']
 
     crop_img_list = crop_img(
         image_path_list=opt.img_list,
