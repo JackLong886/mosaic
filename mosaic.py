@@ -391,11 +391,11 @@ def crop_img(image_path_list, shp_path_list, output_dir):
         # print('start crop {} using {}'.format(image_path, shp_path))
         basename = os.path.basename(image_path)
         preffix, _ = os.path.splitext(basename)
-        name = 'crop_' + preffix + '.vrt'
+        name = 'crop_' + preffix + '.tif'
         output_path = os.path.join(output_dir, name)
 
         options = gdal.WarpOptions(
-            format='VRT',
+            format='GTiff',
             cutlineDSName=shp_path,
             dstNodata=0,
             cropToCutline=True
@@ -445,10 +445,10 @@ if __name__ == '__main__':
         img_color_list.append(output_path)
 
     print(img_color_list)
-    raster_mosaic(
-        file_path_list=img_color_list,
-        output_path=opt.output_path,
-    )
-    print("CostTime:{}".format(time.time() - t0), flush=True)
-
-    shutil.rmtree(opt.work_dir)
+    # raster_mosaic(
+    #     file_path_list=img_color_list,
+    #     output_path=opt.output_path,
+    # )
+    # print("CostTime:{}".format(time.time() - t0), flush=True)
+    #
+    # shutil.rmtree(opt.work_dir)
