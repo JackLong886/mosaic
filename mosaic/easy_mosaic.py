@@ -1,4 +1,4 @@
-from osgeo import gdal, gdalconst
+from osgeo import gdal, gdalconst, ogr
 import os
 import argparse
 import json
@@ -412,6 +412,41 @@ def crop_img(image_path_list, shp_path_list, output_dir):
     return output_path_list
 
 
+def get_mask_shp(path_list, new_dir, gridcode):
+    driver = ogr.GetDriverByName('ESRI Shapefile')
+
+    new_inter_path_list = []
+    make_file(new_dir)
+    for path in path_list:
+        shp_name = os.path.basename(path)
+        new_inter_path = os.path.join(new_dir, shp_name)
+        new_inter_path_list.append(new_inter_path)
+
+        shp = driver.Open(path, 0)
+        layer = shp.GetLayer()
+        srs = layer.GetSpatialRef()
+        defn = layer.GetLayerDefn()
+
+        # 创建新shp
+        new_inter = driver.CreateDataSource(new_inter_path)
+        new_inter_layer = new_inter.CreateLayer(new_inter_path, srs=srs, geom_type=ogr.wkbPolygon)
+        for j in range(defn.GetFieldCount()):
+            new_inter_layer.CreateField(defn.GetFieldDefn(j))
+
+        index = new_inter_layer.GetLayerDefn().GetFieldIndex('Shape_Area')  # 获取字段的索引值
+        fld_defn = ogr.FieldDefn('Shape_Area', ogr.OFTString)  # 创建新属性的字段定义
+        fld_defn.SetWidth(100)
+        new_inter_layer.AlterFieldDefn(index, fld_defn, ogr.ALTER_WIDTH_PRECISION_FLAG)
+
+        layer.ResetReading()
+        for feature in layer:
+            gd = feature.GetField('gridcode')
+            if gd == gridcode:
+                new_inter_layer.CreateFeature(feature)
+
+    return new_inter_path_list
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('cloud removal for remote sensing images')
     parser.add_argument('--json_path', type=str, default=r'parameters.json')
@@ -420,35 +455,58 @@ if __name__ == '__main__':
     parser.add_argument('--output_path', type=str, default=None)
     parser.add_argument('--work_dir', type=str, default=r'C:\Users\DELL\Desktop\ceshi\tmp')
     opt = parser.parse_args()
+
     if os.path.exists(opt.json_path):
         with open(opt.json_path, 'r', encoding='utf-8-sig') as f:
             args = json.load(f)
             opt.img_list = args['img_list']
-            opt.shp_list = args['shp_list']
             opt.output_path = args['output_path']
-            opt.work_dir = args['work_dir']
 
-    crop_img_list = crop_img(
-        image_path_list=opt.img_list,
-        shp_path_list=opt.shp_list,
-        output_dir=opt.work_dir,
-    )
+    # opt.img_list = [
+    #     r'C:\Users\DELL\Desktop\CloudRemoval\clundcheck\l1_8bit.tif',
+    #     r'C:\Users\DELL\Desktop\CloudRemoval\clundcheck\l2_8bit.tif',
+    #     r'C:\Users\DELL\Desktop\CloudRemoval\clundcheck\l3_8bit.tif',
+    # ]
+    #
+    # opt.shp_list = [
+    #     r'C:\Users\DELL\Desktop\CloudRemoval\clundcheck\l1_8bitG.shp',
+    #     r'C:\Users\DELL\Desktop\CloudRemoval\clundcheck\l2_8bitG.shp',
+    #     r'C:\Users\DELL\Desktop\CloudRemoval\clundcheck\l3_8bitG.shp',
+    # ]
+    # opt.output_path = r'C:\Users\DELL\Desktop\ceshi\mosaic.tif'
+    #
+    # opt.shp_list = get_mask_shp(path_list=opt.shp_list,
+    #                              new_dir=os.path.join(opt.work_dir, 'source_shp'),
+    #                              gridcode=1)
 
-    bg = crop_img_list.pop(0)
-    img_color_list = []
-    img_color_list.append(bg)
-    for i in range(len(crop_img_list)):
-        t = time.time()
-        output_path = os.path.join(opt.work_dir, 'tmp{}.tif'.format(t))
-        run_one_color(input_path=opt.img_list[i], ref_path=bg,
-                      output_path=output_path)
-        img_color_list.append(output_path)
-
-    print(img_color_list)
-    # raster_mosaic(
-    #     file_path_list=img_color_list,
-    #     output_path=opt.output_path,
+    # crop_img_list = crop_img(
+    #     image_path_list=opt.img_list,
+    #     shp_path_list=opt.shp_list,
+    #     output_dir=opt.work_dir,
     # )
-    # print("CostTime:{}".format(time.time() - t0), flush=True)
+
+    # bg = crop_img_list[0]
+    # img_color_list = []
+    # img_color_list.append(bg)
+    # for i in range(len(crop_img_list)):
+    #     if i == 0:
+    #         continue
+    #     t = time.time()
+    #     output_path = os.path.join(opt.work_dir, 'tmp{}.tif'.format(t))
+    #     run_one_color(input_path=opt.img_list[i], ref_path=bg,
+    #                   output_path=output_path)
+    #     img_color_list.append(output_path)
+    #
+
+    img_color_list = [
+        r'C:\Users\DELL\Desktop\CloudRemoval\test5\result\map_1674975310.198262.tif',
+        r'C:\Users\DELL\Desktop\CloudRemoval\test5\result\map_1674975333.0845125.tif',
+        r'',
+    ]
+    raster_mosaic(
+        file_path_list=img_color_list,
+        output_path=opt.output_path,
+    )
+    print("CostTime:{}".format(time.time() - t0), flush=True)
     #
     # shutil.rmtree(opt.work_dir)
